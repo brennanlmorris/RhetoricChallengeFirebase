@@ -427,6 +427,15 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+
+        /* -------------------------------------------------
+        Give this browser a persistent UID (survives F5)
+        --------------------------------------------------*/
+        let uid = localStorage.getItem('uid');
+        if (!uid) {
+        uid = Math.random().toString(36).slice(2);
+        localStorage.setItem('uid', uid);
+        }
         
         // Generate or get session ID from URL
         let sessionId = new URLSearchParams(window.location.search).get('session');
@@ -514,25 +523,23 @@
 
         // Firebase sync functions
         function initializeSession() {
-            sessionRef.once('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    // First person to join becomes host
+            sessionRef.once('value', snap => {
+                const data = snap.val();
+
+                if (!data) {              // brand‑new session: you’re first
                     isHost = true;
                     sessionRef.set({
+                        hostId: uid,          // save *your* browser as host
                         currentPhase: 'idle',
                         timeRemaining: 0,
-                        currentPrompt: '',
-                        usedPrompts: [],
-                        host: true,
-                        timestamp: Date.now()
+                         currentPrompt: '',
+                        usedPrompts: []
                     });
-                    console.log('You are the host');
                 } else {
-                    console.log('Joined existing session');
+                    isHost = data.hostId === uid;   // still host after refresh?
                 }
-                
-                // Set up real-time listeners
-                setupRealtimeSync();
+
+                setupRealtimeSync();      // same as before
             });
         }
 
