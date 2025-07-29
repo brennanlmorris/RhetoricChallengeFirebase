@@ -413,7 +413,7 @@
     </div>
 
     <script>
-        // FIREBASE CONFIGURATION - Replace with your config from Firebase Console
+        // FIREBASE CONFIGURATION
         const firebaseConfig = {
             apiKey: "AIzaSyAlRApwIWGMdNQSMYAsBzfaIaf6AGZZCbw",
             authDomain: "rhetoric-challenge.firebaseapp.com",
@@ -427,15 +427,6 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-
-        /* -------------------------------------------------
-        Give this browser a persistent UID (survives F5)
-        --------------------------------------------------*/
-        let uid = localStorage.getItem('uid');
-        if (!uid) {
-        uid = Math.random().toString(36).slice(2);
-        localStorage.setItem('uid', uid);
-        }
         
         // Generate or get session ID from URL
         let sessionId = new URLSearchParams(window.location.search).get('session');
@@ -446,8 +437,8 @@
         
         // Reference to this session's data
         const sessionRef = database.ref(`sessions/${sessionId}`);
-        let isHost = false;
         let syncEnabled = true;
+        let isUpdating = false; // Prevent recursive updates
 
         const prompts = [
             "Democracy is the best form of government",
@@ -521,32 +512,31 @@
         const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
 
-        // Firebase sync functions
+        // Initialize session
         function initializeSession() {
-            sessionRef.once('value', snap => {
-                const data = snap.val();
-
-                if (!data) {              // brand‑new session: you’re first
-                    isHost = true;
+            sessionRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                
+                if (!data) {
+                    // First person to join creates the session
                     sessionRef.set({
-                        hostId: uid,          // save *your* browser as host
                         currentPhase: 'idle',
                         timeRemaining: 0,
-                         currentPrompt: '',
-                        usedPrompts: []
+                        currentPrompt: '',
+                        usedPrompts: [],
+                        timestamp: Date.now()
                     });
-                } else {
-                    isHost = data.hostId === uid;   // still host after refresh?
                 }
-
-                setupRealtimeSync();      // same as before
+                
+                // Set up real-time listeners
+                setupRealtimeSync();
             });
         }
 
         function setupRealtimeSync() {
             // Listen for state changes
             sessionRef.on('value', (snapshot) => {
-                if (!syncEnabled) return;
+                if (!syncEnabled || isUpdating) return;
                 
                 const data = snapshot.val();
                 if (!data) return;
@@ -570,32 +560,24 @@
                         timerDisplay.classList.remove('hidden');
                         timerDisplay.classList.add('prep');
                         progressBar.classList.remove('hidden');
-                        startButton.textContent = isHost ? 'STOP CHALLENGE' : 'CHALLENGE IN PROGRESS';
-                        startButton.disabled = !isHost;
+                        startButton.textContent = 'STOP CHALLENGE';
+                        startButton.disabled = false;
                         
-                        // Start local timer for non-hosts
-                        if (!isHost) {
-                            timeRemaining = data.timeRemaining;
-                            totalTime = 25;
-                            // Compensate for network delay by subtracting 1 second
-                            if (timeRemaining > 0) timeRemaining--;
-                            clearInterval(timerInterval);
-                            timerInterval = setInterval(updateTimerLocal, 1000);
-                        }
+                        // Start local timer
+                        timeRemaining = data.timeRemaining;
+                        totalTime = 25;
+                        clearInterval(timerInterval);
+                        timerInterval = setInterval(updateTimerLocal, 1000);
                     } else if (currentPhase === 'speech') {
                         phaseIndicator.textContent = 'Speech Time';
                         timerDisplay.classList.remove('prep');
                         timerDisplay.classList.add('speech');
                         
-                        // Start local timer for non-hosts
-                        if (!isHost) {
-                            timeRemaining = data.timeRemaining;
-                            totalTime = 75;
-                            // Compensate for network delay by subtracting 1 second
-                            if (timeRemaining > 0) timeRemaining--;
-                            clearInterval(timerInterval);
-                            timerInterval = setInterval(updateTimerLocal, 1000);
-                        }
+                        // Start local timer
+                        timeRemaining = data.timeRemaining;
+                        totalTime = 75;
+                        clearInterval(timerInterval);
+                        timerInterval = setInterval(updateTimerLocal, 1000);
                     } else if (currentPhase === 'idle') {
                         clearInterval(timerInterval);
                         // Reset UI for all users
@@ -605,15 +587,15 @@
                         timerDisplay.classList.add('hidden');
                         timerDisplay.classList.remove('prep', 'speech', 'warning');
                         progressBar.classList.add('hidden');
-                        startButton.textContent = isHost ? 'START CHALLENGE' : 'Waiting for host...';
-                        startButton.disabled = !isHost;
+                        startButton.textContent = 'START CHALLENGE';
+                        startButton.disabled = false;
                     }
                 }
                 
-                // Sync timer (but don't restart interval)
-                if (data.timeRemaining !== undefined && !isHost) {
+                // Sync timer
+                if (data.timeRemaining !== undefined && currentPhase !== 'idle') {
                     // Only update if significantly different (allows local countdown)
-                    if (Math.abs(timeRemaining - data.timeRemaining) > 2) {
+                    if (Math.abs(timeRemaining - data.timeRemaining) > 3) {
                         timeRemaining = data.timeRemaining;
                     }
                 }
@@ -621,13 +603,20 @@
         }
         
         function updateTimerLocal() {
-            // Local timer update for non-hosts
+            // Local timer update
             updateTimerDisplay();
             
             if (timeRemaining > 0) {
                 timeRemaining--;
             } else {
                 clearInterval(timerInterval);
+                
+                // Transition phases
+                if (currentPhase === 'prep') {
+                    startSpeechPhase();
+                } else if (currentPhase === 'speech') {
+                    endChallenge();
+                }
             }
         }
 
@@ -654,11 +643,6 @@
             usedPrompts.push(prompt);
             updatePromptCounter();
             
-            // Sync to Firebase if host
-            if (isHost) {
-                sessionRef.update({ usedPrompts: usedPrompts });
-            }
-            
             return prompt;
         }
 
@@ -671,8 +655,11 @@
             }
             
             // Sync to Firebase
+            isUpdating = true;
             sessionRef.update({
                 usedPrompts: []
+            }).then(() => {
+                isUpdating = false;
             });
         }
 
@@ -687,40 +674,6 @@
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
-        function updateTimer() {
-            timerDisplay.textContent = formatTime(timeRemaining);
-            
-            // Update progress bar
-            const progress = ((totalTime - timeRemaining) / totalTime) * 100;
-            progressFill.style.width = `${100 - progress}%`;
-            
-            // Warning state for last 5 seconds
-            if (timeRemaining <= 5 && timeRemaining > 0) {
-                timerDisplay.classList.add('warning');
-            } else {
-                timerDisplay.classList.remove('warning');
-            }
-            
-            // Sync to Firebase if host
-            if (isHost && timeRemaining % 5 === 0) { // Sync every 5 seconds to reduce writes
-                sessionRef.update({ timeRemaining: timeRemaining });
-            }
-            
-            if (timeRemaining > 0) {
-                timeRemaining--;
-            } else {
-                clearInterval(timerInterval);
-                
-                if (currentPhase === 'prep') {
-                    // Start speech phase
-                    startSpeechPhase();
-                } else if (currentPhase === 'speech') {
-                    // Challenge complete
-                    endChallenge();
-                }
-            }
-        }
-
         function startPrepPhase() {
             // Check if we have prompts available
             if (availablePrompts.length === 0) {
@@ -728,107 +681,53 @@
                 return;
             }
             
-            currentPhase = 'prep';
-            timeRemaining = 25;
-            totalTime = 25;
-            
             // Get prompt
             const newPrompt = getRandomPrompt();
             
-            // Update UI
-            promptText.textContent = newPrompt;
-            promptCard.classList.add('active');
-            phaseIndicator.textContent = 'Preparation Time';
-            phaseIndicator.classList.remove('hidden');
-            timerDisplay.classList.remove('hidden');
-            timerDisplay.classList.add('prep');
-            progressBar.classList.remove('hidden');
-            startButton.textContent = 'STOP CHALLENGE';
-            startButton.disabled = false;
-            
-            // Sync to Firebase if host
-            if (isHost) {
-                sessionRef.update({
-                    currentPhase: 'prep',
-                    timeRemaining: 25,
-                    currentPrompt: newPrompt
-                });
-            }
-            
-            // Start timer
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
+            // Update to Firebase
+            isUpdating = true;
+            sessionRef.update({
+                currentPhase: 'prep',
+                timeRemaining: 25,
+                currentPrompt: newPrompt,
+                usedPrompts: usedPrompts
+            }).then(() => {
+                isUpdating = false;
+            });
         }
 
         function startSpeechPhase() {
-            currentPhase = 'speech';
-            timeRemaining = 75; // 1:15
-            totalTime = 75;
-            
-            // Update UI
-            phaseIndicator.textContent = 'Speech Time';
-            timerDisplay.classList.remove('prep');
-            timerDisplay.classList.add('speech');
-            
-            // Sync to Firebase if host
-            if (isHost) {
-                sessionRef.update({
-                    currentPhase: 'speech',
-                    timeRemaining: 75
-                });
-            }
-            
-            // Play a sound or visual indicator could go here
-            
-            // Start timer
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
+            // Update to Firebase
+            isUpdating = true;
+            sessionRef.update({
+                currentPhase: 'speech',
+                timeRemaining: 75
+            }).then(() => {
+                isUpdating = false;
+            });
         }
 
         function endChallenge() {
-            currentPhase = 'idle';
-            
-            // Update UI
-            phaseIndicator.textContent = 'Challenge Complete!';
-            timerDisplay.textContent = '0:00';
-            timerDisplay.classList.remove('speech', 'warning');
-            progressBar.classList.add('hidden');
-            startButton.textContent = 'START NEW CHALLENGE';
-            startButton.disabled = false;
-            
-            // Sync to Firebase if host
-            if (isHost) {
-                sessionRef.update({
-                    currentPhase: 'idle',
-                    timeRemaining: 0
-                });
-            }
-            
-            // Could add celebration animation here
+            // Update to Firebase
+            isUpdating = true;
+            sessionRef.update({
+                currentPhase: 'idle',
+                timeRemaining: 0
+            }).then(() => {
+                isUpdating = false;
+            });
         }
 
         function resetChallenge() {
-            clearInterval(timerInterval);
-            currentPhase = 'idle';
-            
-            // Reset UI
-            promptText.textContent = 'Press START to receive your philosophical proposition';
-            promptCard.classList.remove('active');
-            phaseIndicator.classList.add('hidden');
-            timerDisplay.classList.add('hidden');
-            timerDisplay.classList.remove('prep', 'speech', 'warning');
-            progressBar.classList.add('hidden');
-            startButton.textContent = 'START CHALLENGE';
-            startButton.disabled = false;
-            
-            // Sync to Firebase if host
-            if (isHost) {
-                sessionRef.update({
-                    currentPhase: 'idle',
-                    timeRemaining: 0,
-                    currentPrompt: ''
-                });
-            }
+            // Update to Firebase
+            isUpdating = true;
+            sessionRef.update({
+                currentPhase: 'idle',
+                timeRemaining: 0,
+                currentPrompt: ''
+            }).then(() => {
+                isUpdating = false;
+            });
         }
 
         const resetButton = document.getElementById('resetButton');
@@ -840,12 +739,10 @@
         });
 
         startButton.addEventListener('click', () => {
-            if (!isHost) return; // Only host can control
-            
             if (currentPhase === 'idle') {
                 startPrepPhase();
             } else if (currentPhase === 'prep' || currentPhase === 'speech') {
-                if (confirm('Are you sure you want to abort the current challenge?')) {
+                if (confirm('Are you sure you want to stop the current challenge?')) {
                     resetChallenge();
                 }
             }
