@@ -351,62 +351,62 @@
     
     <div class="main-content">
         <div class="container">
-            <h1>Impromptu Rhetoric Challenge</h1>
-            
-            <h2 class="defend-heading">Defend this proposition</h2>
-            
-            <div class="prompt-card" id="promptCard">
-                <p class="prompt-text" id="promptText">Press START to receive your philosophical proposition</p>
-            </div>
-            
-            <div class="phase-indicator hidden" id="phaseIndicator"></div>
-            <div class="timer-display hidden" id="timerDisplay">0:00</div>
-            
-            <button class="start-button" id="startButton">START CHALLENGE</button>
-            
-            <div class="button-group">
-                <button class="secondary-button" id="resetButton">Reset Prompts</button>
-                <span class="prompt-counter" id="promptCounter">Prompts remaining: 54/54</span>
-            </div>
-            
-            <div class="progress-bar hidden" id="progressBar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
+        <h1>Impromptu Rhetoric Challenge</h1>
+        
+        <h2 class="defend-heading">Defend this proposition</h2>
+        
+        <div class="prompt-card" id="promptCard">
+            <p class="prompt-text" id="promptText">Press START to receive your philosophical proposition</p>
         </div>
         
-        <div class="advice-section">
-            <h3>Suggestions for impromptu or short-format speaking</h3>
-            <p class="advice-subtitle">These guidelines are relevant when needing to give short statements, such as in media interviews, "elevator pitches", and quick reaction.</p>
-            
-            <div class="advice-content">
-                <h4>Principles to consider</h4>
-                <ul>
-                    <li><strong>Lead with the lede:</strong> State your main idea or argument upfront—don't bury the lede or your best material in the middle. What's the one thing you want people to take away—just say it.</li>
-                    <li><strong>Control the frame:</strong> Frame / define key terms and concepts in ways that support your position (though within reason and usually subtly).</li>
-                    <li><strong>Tell stories:</strong> Use concrete examples and relatable stories rather than abstract concepts—people remember narratives.</li>
-                    <li><strong>Objection handling:</strong> Quickly recognize obvious counter-arguments, then refute or explain why they don't undermine your position.</li>
-                    <li><strong>Start on common ground:</strong> If possible, lean into what your audience already accepts before introducing more controversial claims. How are you giving people what they care about?</li>
-                    <li><strong>"So What?":</strong> Show why your argument matters to your audience's lives or values.</li>
-                    <li><strong>Embrace strategic pauses:</strong> When you need thinking time, pause confidently rather than rushing—silence feels longer to you than to listeners.</li>
-                </ul>
-
-                <h4>Delivery notes</h4>
-                <ul>
-                    <li><strong>Project confidence from word one:</strong> Start with conviction even if you're still formulating your argument—strong openings create momentum.</li>
-                    <li><strong>Slow but energetic:</strong> Generally speak more deliberately than feels comfortable. But convey energy through posture, projection, and expression.</li>
-                    <li><strong>Don't overthink.</strong></li>
-                </ul>
-
-                <h4>Elements to consider including</h4>
-                <ul>
-                    <li><strong>1-2 key supporting points</strong> (keep it simple)</li>
-                    <li><strong>Concrete, relatable examples</strong> (from everyday life, history, or shared experience)</li>
-                    <li><strong>Brief acknowledgment of counter-arguments</strong> (show you understand the complexity)</li>
-                    <li><strong>Clear relevance statement</strong> (why this matters to your audience)</li>
-                </ul>
-            </div>
+        <div class="phase-indicator hidden" id="phaseIndicator"></div>
+        <div class="timer-display hidden" id="timerDisplay">0:00</div>
+        
+        <button class="start-button" id="startButton">START CHALLENGE</button>
+        
+        <div class="button-group">
+            <button class="secondary-button" id="resetButton">Reset Prompts</button>
+            <span class="prompt-counter" id="promptCounter">Prompts remaining: 54/54</span>
         </div>
         
+        <div class="progress-bar hidden" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+    
+    <div class="advice-section">
+        <h3>Suggestions for impromptu or short-format speaking</h3>
+        <p class="advice-subtitle">These guidelines are relevant when needing to give short statements, such as in media interviews, "elevator pitches", and quick reaction.</p>
+        
+        <div class="advice-content">
+            <h4>Principles to consider</h4>
+            <ul>
+                <li><strong>Lead with the lede:</strong> State your main idea or argument upfront—don't bury the lede or your best material in the middle. What's the one thing you want people to take away—just say it.</li>
+                <li><strong>Control the frame:</strong> Frame / define key terms and concepts in ways that support your position (though within reason and usually subtly).</li>
+                <li><strong>Tell stories:</strong> Use concrete examples and relatable stories rather than abstract concepts—people remember narratives.</li>
+                <li><strong>Objection handling:</strong> Quickly recognize obvious counter-arguments, then refute or explain why they don't undermine your position.</li>
+                <li><strong>Start on common ground:</strong> If possible, lean into what your audience already accepts before introducing more controversial claims. How are you giving people what they care about?</li>
+                <li><strong>"So What?":</strong> Show why your argument matters to your audience's lives or values.</li>
+                <li><strong>Embrace strategic pauses:</strong> When you need thinking time, pause confidently rather than rushing—silence feels longer to you than to listeners.</li>
+            </ul>
+
+            <h4>Delivery notes</h4>
+            <ul>
+                <li><strong>Project confidence from word one:</strong> Start with conviction even if you're still formulating your argument—strong openings create momentum.</li>
+                <li><strong>Slow but energetic:</strong> Generally speak more deliberately than feels comfortable. But convey energy through posture, projection, and expression.</li>
+                <li><strong>Don't overthink.</strong></li>
+            </ul>
+
+            <h4>Elements to consider including</h4>
+            <ul>
+                <li><strong>1-2 key supporting points</strong> (keep it simple)</li>
+                <li><strong>Concrete, relatable examples</strong> (from everyday life, history, or shared experience)</li>
+                <li><strong>Brief acknowledgment of counter-arguments</strong> (show you understand the complexity)</li>
+                <li><strong>Clear relevance statement</strong> (why this matters to your audience)</li>
+            </ul>
+        </div>
+    </div>
+    
         <footer class="footer">
             <p>Philosophy Symposium</p>
         </footer>
@@ -433,8 +433,8 @@
         --------------------------------------------------*/
         let uid = localStorage.getItem('uid');
         if (!uid) {
-            uid = Math.random().toString(36).slice(2);
-            localStorage.setItem('uid', uid);
+        uid = Math.random().toString(36).slice(2);
+        localStorage.setItem('uid', uid);
         }
         
         // Generate or get session ID from URL
@@ -526,13 +526,13 @@
             sessionRef.once('value', snap => {
                 const data = snap.val();
 
-                if (!data) {              // brand‑new session: you're first
+                if (!data) {              // brand‑new session: you’re first
                     isHost = true;
                     sessionRef.set({
                         hostId: uid,          // save *your* browser as host
                         currentPhase: 'idle',
                         timeRemaining: 0,
-                        currentPrompt: '',
+                         currentPrompt: '',
                         usedPrompts: []
                     });
                 } else {
